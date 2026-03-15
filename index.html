@@ -66,16 +66,22 @@
   .check-row label { font-size: 13px; color: var(--gray-text); cursor: pointer; }
 
   /* Produto info card */
-  .produto-info { display: none; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; border-top: 3px solid var(--blue); }
-  .produto-info-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-  .produto-ean-badge { font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600; color: var(--blue-dark); background: var(--blue-light); border: 1px solid var(--blue-mid); padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
-  .produto-titulo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.3; flex: 1; }
-  .produto-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
-  .campo { background: var(--gray-bg); border-radius: 8px; padding: 12px 14px; border: 1px solid var(--gray-border); }
-  .campo-label { font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; color: var(--blue-dark); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
-  .campo-valor { font-size: 13px; color: var(--text); line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
-  .campo-valor.longa { max-height: 120px; overflow-y: auto; }
-  .campo.full { grid-column: 1 / -1; }
+.produto-info { display: none; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+.produto-info-header { margin-bottom: 20px; }
+.produto-ean-badge { display: inline-block; font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600; color: var(--blue-dark); background: var(--blue-light); border: 1px solid var(--blue-mid); padding: 4px 10px; border-radius: 20px; margin-bottom: 12px; }
+.produto-campos { display: flex; flex-direction: column; gap: 10px; }
+.campo { background: var(--gray-bg); border-radius: 8px; border: 1px solid var(--gray-border); overflow: hidden; }
+.campo-label { font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; color: var(--blue-dark); text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 14px 4px; }
+.campo-valor { font-size: 13px; color: var(--text); line-height: 1.6; padding: 0 14px 12px; white-space: pre-wrap; word-break: break-word; }
+.campo-titulo-completo .campo-valor { font-family: 'Montserrat', sans-serif; font-size: 16px; font-weight: 600; color: var(--text); }
+.campo-titulo-reduzido .campo-valor { font-size: 13px; color: var(--gray-text); }
+.campo-expandivel .campo-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; user-select: none; }
+.campo-expandivel .campo-header:hover { background: var(--blue-light); }
+.campo-expandivel .campo-label { padding: 0; }
+.campo-seta { font-size: 12px; color: var(--blue-dark); font-family: 'Montserrat', sans-serif; font-weight: 600; transition: transform .2s; display: inline-block; }
+.campo-expandivel.aberto .campo-seta { transform: rotate(180deg); }
+.campo-expandivel .campo-valor { display: none; border-top: 1px solid var(--gray-border); padding: 12px 14px; }
+.campo-expandivel.aberto .campo-valor { display: block; } { grid-column: 1 / -1; }
 
   /* Results */
   .results-card { display: none; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
@@ -185,12 +191,11 @@
 
   <!-- Informações do produto -->
   <div class="produto-info" id="produto-info">
-    <div class="produto-info-header">
-      <div class="produto-titulo" id="produto-titulo"></div>
-      <div class="produto-ean-badge" id="produto-ean-badge"></div>
-    </div>
-    <div class="produto-campos" id="produto-campos"></div>
+  <div class="produto-info-header">
+    <div class="produto-ean-badge" id="produto-ean-badge"></div>
   </div>
+  <div class="produto-campos" id="produto-campos"></div>
+</div>
 
   <div class="results-card" id="results-card">
     <div class="results-header">
@@ -308,36 +313,55 @@ function buscar() {
 
 function exibirInfoProduto(ean, produto) {
   var card = document.getElementById('produto-info');
-  var titulo = document.getElementById('produto-titulo');
   var badge = document.getElementById('produto-ean-badge');
   var campos = document.getElementById('produto-campos');
 
   if (!produto) { card.style.display = 'none'; return; }
 
   badge.textContent = 'EAN: ' + ean;
-  titulo.textContent = produto.titulo_completo || produto.nome || ean;
   campos.innerHTML = '';
 
-  var lista = [
-    { label: 'Titulo reduzido', valor: produto.titulo_reduzido, full: false },
-    { label: 'Descricao rapida', valor: produto.descricao_rapida, full: false },
-    { label: 'Descricao longa', valor: produto.descricao_longa, full: true, longa: true }
-  ];
-
-  lista.forEach(function(item) {
-    if (!item.valor) return;
+  function criarCampo(label, valor, tipo, expandivel) {
+    if (!valor) return null;
     var div = document.createElement('div');
-    div.className = 'campo' + (item.full ? ' full' : '');
-    var label = document.createElement('div');
-    label.className = 'campo-label';
-    label.textContent = item.label;
-    var valor = document.createElement('div');
-    valor.className = 'campo-valor' + (item.longa ? ' longa' : '');
-    valor.textContent = item.valor;
-    div.appendChild(label);
-    div.appendChild(valor);
-    campos.appendChild(div);
-  });
+    div.className = 'campo' + (tipo ? ' campo-' + tipo : '') + (expandivel ? ' campo-expandivel' : '');
+
+    if (expandivel) {
+      var header = document.createElement('div');
+      header.className = 'campo-header';
+      var lbl = document.createElement('div');
+      lbl.className = 'campo-label';
+      lbl.textContent = label;
+      var seta = document.createElement('span');
+      seta.className = 'campo-seta';
+      seta.textContent = '▼';
+      header.appendChild(lbl);
+      header.appendChild(seta);
+      header.onclick = function() { div.classList.toggle('aberto'); };
+      div.appendChild(header);
+    } else {
+      var lbl = document.createElement('div');
+      lbl.className = 'campo-label';
+      lbl.textContent = label;
+      div.appendChild(lbl);
+    }
+
+    var val = document.createElement('div');
+    val.className = 'campo-valor';
+    val.textContent = valor;
+    div.appendChild(val);
+    return div;
+  }
+
+  var c1 = criarCampo('Titulo completo', produto.titulo_completo, 'titulo-completo', false);
+  var c2 = criarCampo('Titulo reduzido', produto.titulo_reduzido, 'titulo-reduzido', false);
+  var c3 = criarCampo('Descricao rapida', produto.descricao_rapida, null, true);
+  var c4 = criarCampo('Descricao longa', produto.descricao_longa, null, true);
+
+  if (c1) campos.appendChild(c1);
+  if (c2) campos.appendChild(c2);
+  if (c3) campos.appendChild(c3);
+  if (c4) campos.appendChild(c4);
 
   card.style.display = campos.children.length > 0 ? 'block' : 'none';
 }
