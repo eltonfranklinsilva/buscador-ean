@@ -1,1 +1,1 @@
-# buscador-ean
+# buscador-pso
