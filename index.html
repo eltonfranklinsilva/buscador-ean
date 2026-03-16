@@ -539,9 +539,17 @@ function redimensionarBlob(blob, w, h, manter, formatoMime) {
         if (tw < 1) tw = 1; if (th < 1) th = 1;
         var canvas = document.createElement('canvas');
         canvas.width = tw; canvas.height = th;
-        canvas.getContext('2d').drawImage(img, 0, 0, tw, th);
+        var ctx = canvas.getContext('2d');
+
+        // ✅ Fundo branco para JPG (evita fundo preto em PNGs transparentes)
+        var mime = (formatoMime && formatoMime !== 'original') ? formatoMime : (blob.type || 'image/png');
+        if (mime === 'image/jpeg') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, tw, th);
+        }
+
+        ctx.drawImage(img, 0, 0, tw, th);
         URL.revokeObjectURL(url);
-        var mime = (formatoMime && formatoMime !== 'original') ? formatoMime : (blob.type || 'image/jpeg');
         canvas.toBlob(function(b) { resolve({ blob: b || blob, mime: mime }); }, mime, 0.92);
       } catch(e) { URL.revokeObjectURL(url); resolve({ blob: blob, mime: null }); }
     };
