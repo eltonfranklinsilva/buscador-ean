@@ -531,24 +531,31 @@ function redimensionarBlob(blob, w, h, manter, formatoMime) {
       try {
         var sw = img.naturalWidth, sh = img.naturalHeight;
         var tw = w || sw, th = h || sh;
-        if (manter && (w || h)) {
-          if (w && !h) { th = Math.round(sh * w / sw); tw = w; }
-          else if (h && !w) { tw = Math.round(sw * h / sh); th = h; }
-          else if (w && h) { var r = Math.min(w/sw, h/sh); tw = Math.round(sw*r); th = Math.round(sh*r); }
-        }
-        if (tw < 1) tw = 1; if (th < 1) th = 1;
+        var mime = (formatoMime && formatoMime !== 'original') ? formatoMime : (blob.type || 'image/png');
+
         var canvas = document.createElement('canvas');
         canvas.width = tw; canvas.height = th;
         var ctx = canvas.getContext('2d');
 
-        // ✅ Fundo branco para JPG (evita fundo preto em PNGs transparentes)
-        var mime = (formatoMime && formatoMime !== 'original') ? formatoMime : (blob.type || 'image/png');
+        // Fundo branco para JPG
         if (mime === 'image/jpeg') {
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, tw, th);
         }
 
-        ctx.drawImage(img, 0, 0, tw, th);
+        if (manter) {
+          // ✅ Fit proporcional + centralizado (letterbox)
+          var r = Math.min(tw / sw, th / sh);
+          var dw = Math.round(sw * r);
+          var dh = Math.round(sh * r);
+          var dx = Math.round((tw - dw) / 2);
+          var dy = Math.round((th - dh) / 2);
+          ctx.drawImage(img, dx, dy, dw, dh);
+        } else {
+          // Sem proporção: estica para preencher tudo
+          ctx.drawImage(img, 0, 0, tw, th);
+        }
+
         URL.revokeObjectURL(url);
         canvas.toBlob(function(b) { resolve({ blob: b || blob, mime: mime }); }, mime, 0.92);
       } catch(e) { URL.revokeObjectURL(url); resolve({ blob: blob, mime: null }); }
