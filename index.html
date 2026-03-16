@@ -30,6 +30,7 @@
   .step-num { width: 24px; height: 24px; background: var(--blue); color: white; border-radius: 50%; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
   .step p { font-size: 13px; color: var(--gray-text); line-height: 1.5; }
   .step strong { color: var(--text); font-weight: 600; }
+  .dica-box { margin-top: 14px; padding: 10px 14px; background: #FFF8E1; border-left: 3px solid #F59E0B; border-radius: 6px; font-size: 12.5px; color: #78350F; line-height: 1.6; }
 
   /* Search */
   .search-card { position: relative; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
@@ -37,8 +38,9 @@
   .search-row { display: flex; gap: 10px; }
   .search-row input { flex: 1; padding: 12px 16px; font-size: 16px; font-family: 'Open Sans', sans-serif; border: 2px solid var(--gray-border); border-radius: 8px; outline: none; transition: border-color .2s; color: var(--text); }
   .search-row input:focus { border-color: var(--blue); }
-  input[type=number] { width: 90px; padding: 8px 10px; font-size: 14px; border: 1.5px solid var(--gray-border); border-radius: 6px; outline: none; text-align: center; font-family: 'Open Sans', sans-serif; }
+  input[type=number] { width: 90px; padding: 8px 10px; font-size: 14px; border: 1.5px solid var(--gray-border); border-radius: 6px; outline: none; text-align: center; font-family: 'Open Sans', sans-serif; transition: border-color .2s, background .2s, color .2s; }
   input[type=number]:focus { border-color: var(--blue); }
+  input[type=number]:disabled { background: #f0f0f0; color: #aaa; cursor: not-allowed; border-color: #e0e0e0; }
   .btn-buscar { padding: 12px 24px; background: var(--blue); color: white; border: none; border-radius: 8px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s; white-space: nowrap; }
   .btn-buscar:hover { background: var(--blue-dark); }
   .btn-buscar:disabled { background: #aaa; cursor: not-allowed; }
@@ -62,6 +64,7 @@
   .resize-grupo { display: flex; flex-direction: column; gap: 8px; }
   .resize-linha { display: flex; align-items: center; gap: 10px; }
   .resize-linha span { font-size: 13px; color: var(--gray-text); min-width: 52px; }
+  .resize-linha .campo-bloqueado { font-size: 12px; color: #aaa; font-style: italic; }
   .check-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
   .check-row input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--blue); }
   .check-row label { font-size: 13px; color: var(--gray-text); cursor: pointer; }
@@ -146,13 +149,18 @@
 </header>
 
 <div class="main">
+
+  <!-- ✅ AJUSTE 1: Como usar atualizado com passo 4 revisado e dica amarela -->
   <div class="instrucoes">
     <h2>Como usar</h2>
     <div class="steps">
       <div class="step"><div class="step-num">1</div><p>Digite o <strong>código EAN</strong> ou o <strong>nome do produto</strong> no campo de busca.</p></div>
       <div class="step"><div class="step-num">2</div><p>Veja as <strong>informações do produto</strong> e suas imagens cadastradas.</p></div>
       <div class="step"><div class="step-num">3</div><p>Selecione as imagens desejadas ou baixe <strong>todas em ZIP</strong>.</p></div>
-      <div class="step"><div class="step-num">4</div><p>Defina <strong>dimensões</strong> e <strong>formato</strong> antes de baixar.</p></div>
+      <div class="step"><div class="step-num">4</div><p>Para exportar em tamanho fixo (ex: <strong>1000 × 1000</strong>), defina as dimensões e mantenha <strong>"Manter proporção original"</strong> marcado — a imagem será centralizada com fundo branco, sem distorção.</p></div>
+    </div>
+    <div class="dica-box">
+      💡 <strong>Dica:</strong> Imagens com formatos irregulares (ex: muito largas ou muito altas) ficam melhores exportadas com dimensões definidas e <em>proporção mantida</em>. Desmarcar essa opção força o preenchimento total e pode distorcer a imagem.
     </div>
   </div>
 
@@ -172,16 +180,18 @@
       <div class="resize-grupo">
         <div class="resize-linha">
           <span>Largura:</span>
-          <input type="number" id="resize-w" placeholder="ex: 800" min="10" max="5000" />
+          <input type="number" id="resize-w" placeholder="ex: 1000" min="10" max="5000" oninput="atualizarCampoAltura()" />
           <span>px</span>
         </div>
+        <!-- ✅ AJUSTE 2: campo altura com id e span de aviso -->
         <div class="resize-linha">
           <span>Altura:</span>
-          <input type="number" id="resize-h" placeholder="ex: 800" min="10" max="5000" />
-          <span>px</span>
+          <input type="number" id="resize-h" placeholder="ex: 1000" min="10" max="5000" />
+          <span id="altura-aviso" class="campo-bloqueado" style="display:none">calculada automaticamente</span>
         </div>
         <div class="check-row">
-          <input type="checkbox" id="manter-proporcao" checked />
+          <!-- ✅ AJUSTE 1: checked garantido por padrão -->
+          <input type="checkbox" id="manter-proporcao" checked onchange="atualizarCampoAltura()" />
           <label for="manter-proporcao">Manter proporção original</label>
         </div>
       </div>
@@ -246,6 +256,24 @@ fetch('catalogo.json')
   .then(function(data) { catalogo = data; })
   .catch(function() { catalogo = []; });
 
+// ✅ AJUSTE 2: bloqueia campo altura quando "manter proporção" + largura preenchida
+function atualizarCampoAltura() {
+  var manter = document.getElementById('manter-proporcao').checked;
+  var w = document.getElementById('resize-w').value.trim();
+  var inputH = document.getElementById('resize-h');
+  var aviso = document.getElementById('altura-aviso');
+  if (manter && w) {
+    inputH.disabled = true;
+    inputH.value = '';
+    inputH.placeholder = '—';
+    aviso.style.display = 'inline';
+  } else {
+    inputH.disabled = false;
+    inputH.placeholder = 'ex: 1000';
+    aviso.style.display = 'none';
+  }
+}
+
 function limparResultados() {
   document.getElementById('results-card').style.display = 'none';
   document.getElementById('produto-info').style.display = 'none';
@@ -254,6 +282,14 @@ function limparResultados() {
   document.getElementById('progress').textContent = '';
   document.getElementById('sel-info').textContent = '';
   document.getElementById('formato-saida').value = 'original';
+  // ✅ Reset dos campos de resize ao limpar
+  var inputH = document.getElementById('resize-h');
+  inputH.disabled = false;
+  inputH.placeholder = 'ex: 1000';
+  inputH.value = '';
+  document.getElementById('resize-w').value = '';
+  document.getElementById('altura-aviso').style.display = 'none';
+  document.getElementById('manter-proporcao').checked = true;
   arquivos = [];
   selecionadas.clear();
   todosSelecionados = false;
@@ -532,21 +568,21 @@ function redimensionarBlob(blob, w, h, manter, formatoMime) {
         var sw = img.naturalWidth, sh = img.naturalHeight;
         var tw = w || sw, th = h || sh;
 
-        // ✅ mime resolvido com fallback explícito
+        // mime resolvido com fallback explícito
         var mime;
         if (formatoMime && formatoMime !== 'original') {
           mime = formatoMime;
         } else if (blob.type && blob.type.startsWith('image/')) {
           mime = blob.type;
         } else {
-          mime = 'image/jpeg'; // fallback seguro
+          mime = 'image/jpeg';
         }
 
         var canvas = document.createElement('canvas');
         canvas.width = tw; canvas.height = th;
         var ctx = canvas.getContext('2d');
 
-        // ✅ Fundo branco SEMPRE que o formato de saída for JPG
+        // Fundo branco para JPG (evita fundo preto em PNGs transparentes)
         if (mime === 'image/jpeg') {
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, tw, th);
